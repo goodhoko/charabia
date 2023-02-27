@@ -42,6 +42,8 @@
 //! this features are additional Language supports that need to download and/or build a specialized dictionary that impact the compilation time.
 //! Theses features are listed in charabia's `cargo.toml` and can be deactivated via [dependency features](https://doc.rust-lang.org/cargo/reference/features.html#dependency-features).
 
+#![feature(return_position_impl_trait_in_trait)]
+
 pub mod classifier;
 pub mod normalizer;
 pub mod segmenter;

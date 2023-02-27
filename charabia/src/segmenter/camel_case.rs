@@ -1,3 +1,5 @@
+use std::iter;
+
 use finl_unicode::categories::CharacterCategories;
 
 pub(crate) trait CamelCaseSegmentation {
@@ -5,11 +7,7 @@ pub(crate) trait CamelCaseSegmentation {
     /// For instance, "camelCase" is split into ["camel", "Case"].
     /// A camelCase boundary constitutes a lowercase letter directly followed by an uppercase letter
     /// where lower and uppercase letters are defined by the corresponding Unicode General Categories.
-    fn split_camel_case_bounds(&self) -> CamelCaseParts;
-}
-
-pub(crate) struct CamelCaseParts<'t> {
-    state: State<'t>,
+    fn split_camel_case_bounds(&self) -> impl Iterator<Item = &Self>;
 }
 
 enum State<'t> {
@@ -18,32 +16,28 @@ enum State<'t> {
 }
 
 impl CamelCaseSegmentation for str {
-    fn split_camel_case_bounds(&self) -> CamelCaseParts {
-        CamelCaseParts { state: State::InProgress { remainder: self } }
-    }
-}
+    fn split_camel_case_bounds(&self) -> impl Iterator<Item = &str> {
+        let mut state = State::InProgress { remainder: self };
 
-impl<'t> Iterator for CamelCaseParts<'t> {
-    type Item = &'t str;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.state {
-            State::Exhausted => None,
-            State::InProgress { remainder } => {
-                match find_camel_case_boundary(remainder) {
-                    Some(boundary) => {
-                        self.state = State::InProgress { remainder: &remainder[boundary..] };
-                        Some(&remainder[..boundary])
-                    }
-                    None => {
-                        // All boundaries processed. Mark `self` as exhausted.
-                        self.state = State::Exhausted;
-                        // But don't forget to yield the part of the string remaining after the last boundary.
-                        Some(remainder)
+        iter::from_fn(move || {
+            match state {
+                State::Exhausted => None,
+                State::InProgress { remainder } => {
+                    match find_camel_case_boundary(remainder) {
+                        Some(boundary) => {
+                            state = State::InProgress { remainder: &remainder[boundary..] };
+                            Some(&remainder[..boundary])
+                        }
+                        None => {
+                            // All boundaries processed. Mark `self` as exhausted.
+                            state = State::Exhausted;
+                            // But don't forget to yield the part of the string remaining after the last boundary.
+                            Some(remainder)
+                        }
                     }
                 }
             }
-        }
+        })
     }
 }
 
